@@ -1,0 +1,244 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local shothoEnabled = false
+local flyEnabled = false
+local isMinimized = false
+
+local DetectedGuis = {}
+
+local function KillAllFlyGuis()
+    for _, g in pairs(DetectedGuis) do
+        if g and g.Parent then g:Destroy() end
+    end
+    DetectedGuis = {}
+
+    for _, v in pairs(LocalPlayer:WaitForChild("PlayerGui"):GetDescendants()) do
+        if v:IsA("TextLabel") or v:IsA("TextButton") then
+            if v.Text:find("Fly") or v.Text:find("V3") or v.Text:find("UP") or v.Text:find("DOWN") then
+                local rootGui = v:FindFirstAncestorOfClass("ScreenGui")
+                if rootGui and rootGui.Name ~= "ShothoHub" then
+                    rootGui:Destroy()
+                end
+            end
+        end
+    end
+
+    local char = LocalPlayer.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            for _, obj in pairs(hrp:GetChildren()) do
+                if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
+                    obj:Destroy()
+                end
+            end
+        end
+        if char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+        end
+    end
+end
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Name = "ShothoHub"
+screenGui.Parent = game.CoreGui
+
+-- Botón minimizar
+local miniBtn = Instance.new("TextButton")
+miniBtn.Size = UDim2.new(0, 140, 0, 30)
+miniBtn.Position = UDim2.new(0.1, 0, 0.7, -35)
+miniBtn.Text = "▼ NGT_12s HUB"
+miniBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+miniBtn.TextColor3 = Color3.new(1, 1, 1)
+miniBtn.Font = Enum.Font.GothamBold
+miniBtn.TextSize = 12
+miniBtn.Parent = screenGui
+Instance.new("UICorner", miniBtn).CornerRadius = UDim.new(0, 6)
+
+-- Frame principal
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 140, 0, 155)
+frame.Position = UDim2.new(0.1, 0, 0.7, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+
+-- Botón SHOTHO
+local shothoBtn = Instance.new("TextButton")
+shothoBtn.Size = UDim2.new(1, -10, 0, 45)
+shothoBtn.Position = UDim2.new(0, 5, 0, 5)
+shothoBtn.Text = "SHOTHO OFF"
+shothoBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+shothoBtn.TextColor3 = Color3.new(1, 1, 1)
+shothoBtn.Parent = frame
+
+-- Botón Fly
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(1, -10, 0, 45)
+flyBtn.Position = UDim2.new(0, 5, 0, 55)
+flyBtn.Text = "FLY OFF"
+flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+flyBtn.TextColor3 = Color3.new(1, 1, 1)
+flyBtn.Parent = frame
+
+-- Botón Créditos
+local creditsBtn = Instance.new("TextButton")
+creditsBtn.Size = UDim2.new(1, -10, 0, 30)
+creditsBtn.Position = UDim2.new(0, 5, 0, 110)
+creditsBtn.Text = "Créditos ?"
+creditsBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+creditsBtn.TextColor3 = Color3.new(1, 1, 1)
+creditsBtn.Parent = frame
+
+-- Frame créditos
+local creditsFrame = Instance.new("Frame")
+creditsFrame.Size = UDim2.new(0, 140, 0, 50)
+creditsFrame.Position = UDim2.new(0, 0, 0, 148)
+creditsFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+creditsFrame.Visible = false
+creditsFrame.Parent = frame
+Instance.new("UICorner", creditsFrame).CornerRadius = UDim.new(0, 6)
+
+local creditsLabel = Instance.new("TextLabel")
+creditsLabel.Size = UDim2.new(1, 0, 1, 0)
+creditsLabel.Text = "🎮 Creado por NGT_12s"
+creditsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+creditsLabel.BackgroundTransparency = 1
+creditsLabel.TextSize = 11
+creditsLabel.Font = Enum.Font.GothamBold
+creditsLabel.Parent = creditsFrame
+
+-- Toggle créditos
+creditsBtn.MouseButton1Click:Connect(function()
+    creditsFrame.Visible = not creditsFrame.Visible
+    frame.Size = creditsFrame.Visible
+        and UDim2.new(0, 140, 0, 205)
+        or UDim2.new(0, 140, 0, 155)
+end)
+
+-- Minimizar
+miniBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    frame.Visible = not isMinimized
+    miniBtn.Text = isMinimized and "▲ NGT_12s HUB" or "▼ NGT_12s HUB"
+end)
+
+-- Función matar NPCs
+local function killNearbyNPCs()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Humanoid") then
+            local isPlayer = false
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p.Character and p.Character:FindFirstChild("Humanoid") == obj then
+                    isPlayer = true
+                    break
+                end
+            end
+            if not isPlayer then
+                local npcHRP = obj.Parent:FindFirstChild("HumanoidRootPart")
+                if npcHRP then
+                    local dist = (hrp.Position - npcHRP.Position).Magnitude
+                    if dist < 200 then
+                        obj.Health = 0
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Toggle SHOTHO
+shothoBtn.MouseButton1Click:Connect(function()
+    shothoEnabled = not shothoEnabled
+    shothoBtn.Text = shothoEnabled and "SHOTHO ON" or "SHOTHO OFF"
+    shothoBtn.BackgroundColor3 = shothoEnabled
+        and Color3.fromRGB(0, 180, 0)
+        or Color3.fromRGB(40, 40, 40)
+
+    if shothoEnabled then
+        task.spawn(function()
+            while shothoEnabled do
+                killNearbyNPCs()
+                task.wait(0.5)
+            end
+        end)
+    end
+end)
+
+-- Toggle Fly
+flyBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    flyBtn.Text = flyEnabled and "FLY ON" or "FLY OFF"
+    flyBtn.BackgroundColor3 = flyEnabled
+        and Color3.fromRGB(0, 180, 0)
+        or Color3.fromRGB(40, 40, 40)
+
+    if flyEnabled then
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-30439"))()
+    else
+        KillAllFlyGuis()
+    end
+end)
+
+-- DRAG SYSTEM
+local dragging = false
+local dragStart
+local startPosFrame
+local startPosMini
+
+local function startDrag(input)
+    dragging = true
+    dragStart = input.Position
+    startPosFrame = frame.Position
+    startPosMini = miniBtn.Position
+end
+
+local function endDrag(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        startDrag(input)
+    end
+end)
+frame.InputEnded:Connect(endDrag)
+
+miniBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        startDrag(input)
+    end
+end)
+miniBtn.InputEnded:Connect(endDrag)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPosFrame.X.Scale, startPosFrame.X.Offset + delta.X,
+            startPosFrame.Y.Scale, startPosFrame.Y.Offset + delta.Y
+        )
+        miniBtn.Position = UDim2.new(
+            startPosMini.X.Scale, startPosMini.X.Offset + delta.X,
+            startPosMini.Y.Scale, startPosMini.Y.Offset + delta.Y
+        )
+    end
+end)
